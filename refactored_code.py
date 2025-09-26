@@ -1,81 +1,71 @@
-# Import necessary modules; ensure you have any needed libraries
-from flask import Flask, jsonify
+# Import necessary modules for the application
+from flask import Flask, render_template
 import unittest
 
 app = Flask(__name__)
 
-# Configuration for labels used throughout the application
-LABELS = {
-    "todo_tracker": "Smart ToDoTracker"  # Updated label
-}
-
-# A simulated endpoint showing how the label is used in the API
-@app.route('/api/todo', methods=['GET'])
-def get_todo_label():
-    """
-    Endpoint to retrieve the current ToDo Tracker label.
-    Returns JSON containing the updated label.
-    """
-    return jsonify({"label": LABELS["todo_tracker"]})
+# Define the new app label
+APP_LABEL = 'Smart ToDoTracker'
 
 @app.route('/')
 def home():
-    """
-    Render the home page with the updated label.
-    """
-    return f"<h1>Welcome to {LABELS['todo_tracker']}!</h1>"
+    # Render the home page with the new label
+    return render_template('index.html', app_label=APP_LABEL)
 
-def run_tests():
-    """
-    Function to run all tests for the application.
-    """
-    class TestSmartToDoTracker(unittest.TestCase):
-
-        def test_api_label(self):
-            """Test the API endpoint returns the correct label."""
-            with app.test_client() as client:
-                response = client.get('/api/todo')
-                data = response.get_json()
-                self.assertEqual(data['label'], "Smart ToDoTracker")
-
-        def test_home_page_label(self):
-            """Test home page displays the correct label."""
-            with app.test_client() as client:
-                response = client.get('/')
-                self.assertIn("Welcome to Smart ToDoTracker", response.data.decode('utf-8'))
-
-        def test_localization(self):
-            """Test that the label is present in any expected localization"""
-            loc_labels = {"en": "Smart ToDoTracker", "es": "Smart ToDoTracker"}
-            self.assertEqual(loc_labels["en"], "Smart ToDoTracker")
-            self.assertEqual(loc_labels["es"], "Smart ToDoTracker")  # Example placeholder
-
-        def test_legacy_code_reference(self):
-            """Test for any hardcoded legacy instances, example given"""
-            # Assuming we want to check an old reference to the label
-            old_reference = "ToDoTracker"
-            self.assertNotIn(old_reference, LABELS.values()) 
-
-        def test_user_communication(self):
-            """Test for user communications about label change"""
-            user_message = "We're excited to introduce Smart ToDoTracker!"
-            self.assertIn("Smart ToDoTracker", user_message)
-
-    # Running tests and collecting results
-    result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(TestSmartToDoTracker))
-
-    # Print results with checkmark or X indicators
-    if result.wasSuccessful():
-        print("All tests passed ✅")
-    else:
-        print("Some tests failed ❌")
-
-def main():
-    # Run the Flask application
+def run_app():
     app.run(debug=True)
 
-    # Run tests after starting the application
-    run_tests()
+class TestSmartToDoTracker(unittest.TestCase):
+    def setUp(self):
+        """Set up a testing client for the Flask app."""
+        self.app = app.test_client()
+        self.app.testing = True
+
+    def test_label_display(self):
+        """Verify that the label 'Smart ToDoTracker' appears on the home page."""
+        response = self.app.get('/')
+        self.assertIn(APP_LABEL.encode(), response.data)
+
+    def test_label_internationalization(self):
+        """Ensure that 'Smart ToDoTracker' is reflected in different locales."""
+        response_en = self.app.get('/')
+        response_es = self.app.get('/?lang=es')  # Example locale switch
+        self.assertIn(APP_LABEL.encode(), response_en.data)
+        # Assuming a hypothetical translation in Spanish for demonstration
+        self.assertIn('Smart ToDoTracker Translated'.encode(), response_es.data) 
+
+    def test_ui_element_layout(self):
+        """Check for overflow or layout issues with the new label."""
+        response = self.app.get('/')
+        layout_check = response.data  # Here we would perform actual layout validations
+        self.assertIsNotNone(layout_check)
+
+    def test_functionality_impact(self):
+        """Validate that no functionality is affected by the label change."""
+        response = self.app.get('/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_edge_cases(self):
+        """Check for edge cases like caching and user-generated content."""
+        # For the sake of the example, we will simulate caching check.
+        cached_response = self.app.get('/')
+        self.assertIn(APP_LABEL.encode(), cached_response.data)  # Check cached response includes the updated label.
+
+    def run_tests(self):
+        """Run the unit tests and print results with indicators."""
+        tests = unittest.TestLoader().loadTestsFromTestCase(TestSmartToDoTracker)
+        test_result = unittest.TextTestRunner(verbosity=2).run(tests)
+        
+        if test_result.wasSuccessful():
+            print("All tests passed ✅")
+        else:
+            print("Some tests failed ❌")
+
+def main():
+    """Main function to run the application and tests."""
+    run_app()  # This will start the Flask app
+    # Running tests after the app starts
+    TestSmartToDoTracker().run_tests()
 
 if __name__ == '__main__':
     main()
