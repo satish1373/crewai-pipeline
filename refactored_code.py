@@ -1,68 +1,80 @@
-from flask import Flask, render_template
-import unittest
+import tkinter as tk
+from tkinter import messagebox
 
-app = Flask(__name__)
+class SmartToDoTrackerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Smart ToDoTracker")
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+        # Create user interface components
+        self.label = tk.Label(root, text="Smart ToDoTracker", font=("Helvetica", 16))
+        self.label.pack(pady=10)
 
-def apply_background_color():
-    # This function would typically change the background color in the application's CSS or template system.
-    # For demonstration, simply print a message indicating the action.
-    print("Background color set to red.")
+        self.add_item_label = tk.Label(root, text="Add Item:")
+        self.add_item_label.pack(pady=5)
 
-class TestBackgroundColorChange(unittest.TestCase):
-    
-    def test_visual_verification(self):
-        # This simulation should actually verify the visual output.
-        result = True  # In reality, replace with a visual test tool.
-        self.assertTrue(result, "Visual verification failed: Background color is not applied correctly.")
-        
-    def test_cross_browser_compatibility(self):
-        browsers = ['Chrome', 'Firefox', 'Safari', 'Edge']
-        compatibility = all([True for _ in browsers])  # Add actual testing logic.
-        self.assertTrue(compatibility, "Cross-browser compatibility test failed.")
+        self.entry = tk.Entry(root)
+        self.entry.pack(pady=5)
 
-    def test_mobile_responsiveness(self):
-        is_responsive = True  # Replace with real responsive testing.
-        self.assertTrue(is_responsive, "Mobile responsiveness check failed.")
+        self.add_button = tk.Button(root, text="Add", command=self.add_item)
+        self.add_button.pack(pady=5)
 
-    def test_accessibility_check(self):
-        accessibility_pass = True  # Use actual accessibility testing tool.
-        self.assertTrue(accessibility_pass, "Accessibility check failed.")
+        self.listbox = tk.Listbox(root)
+        self.listbox.pack(pady=10)
 
-    def test_functionality_integrity(self):
-        functionality_intact = True  # Verify existing features are intact.
-        self.assertTrue(functionality_intact, "Functionality integrity check failed.")
+        self.remove_button = tk.Button(root, text="Remove Selected", command=self.remove_item)
+        self.remove_button.pack(pady=5)
 
-    def test_color_contrast(self):
-        contrast_ratio = 5.0  # Replace with actual calculation.
-        self.assertGreater(contrast_ratio, 4.5, "Color contrast is below acceptable levels.")
+    def add_item(self):
+        """Add an item to the listbox from the entry field."""
+        item = self.entry.get().strip()  # Stripping whitespace
+        if item:  # Ensures that the item is not just spaces
+            self.listbox.insert(tk.END, item)
+            self.entry.delete(0, tk.END)  # Clear the entry field after adding
+        else:
+            messagebox.showwarning("Warning", "Please enter an item to add.")
 
-    def test_user_preferences(self):
-        user_preference_applied = False  # Check if user settings overwrite the new color.
-        self.assertFalse(user_preference_applied, "User preferences are being overridden.")
-
-    def test_images_visibility(self):
-        image_visibility = True  # Ensure images are visible against the new background.
-        self.assertTrue(image_visibility, "Image visibility check failed.")
+    def remove_item(self):
+        """Remove selected item from the listbox."""
+        try:
+            selected_index = self.listbox.curselection()[0]
+            self.listbox.delete(selected_index)
+        except IndexError:
+            messagebox.showwarning("Warning", "Please select an item to remove.")
 
 def main():
-    with app.app_context():
-        apply_background_color()
-        
-    # Run tests
-    test_suite = unittest.TestLoader().loadTestsFromTestCase(TestBackgroundColorChange)
-    test_result = unittest.TextTestRunner().run(test_suite)
+    root = tk.Tk()
+    app = SmartToDoTrackerApp(root)
+    root.geometry("300x400")  # Set the size of the application window
+    root.mainloop()
 
-    print("\nTest Results:")
-    for test in test_result.failures:
-        print(f"❌ {test[0]}: {test[1]}")
-    for test in test_result.errors:
-        print(f"❌ {test[0]}: {test[1]}")
-    for test in test_result.successes:
-        print(f"✅ {test[0]}")
+# Test cases based on router recommendations
+def test_smart_todo_tracker_app():
+    """Test cases to verify application functionality."""
+    # Test setup
+    root = tk.Tk()
+    app = SmartToDoTrackerApp(root)
 
-if __name__ == '__main__':
+    # Test adding an item
+    app.entry.insert(0, "Test Item")
+    app.add_item()
+    assert app.listbox.get(0) == "Test Item", "Failed: Item was not added correctly."
+
+    # Test removing an item
+    app.listbox.select_set(0)  # Select the first item
+    app.remove_item()
+    assert app.listbox.size() == 0, "Failed: Item was not removed correctly."
+
+    # Test empty input handle
+    app.entry.insert(0, "")
+    app.add_item()  # Should show warning
+    # This cannot be asserted since it would require GUI observation, but we can ensure no exception is raised.
+
+    # Edge case: Attempt to remove from empty list
+    app.remove_item()  # Should show warning
+
+    print("All test cases passed successfully!")
+
+if __name__ == "__main__":
     main()
+    test_smart_todo_tracker_app()
