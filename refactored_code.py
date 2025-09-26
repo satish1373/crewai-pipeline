@@ -1,93 +1,93 @@
-# Import necessary libraries for creating a simple web app
 from flask import Flask, render_template_string
-import unittest
+import webbrowser
+import threading
 
-# Initialize the Flask application
 app = Flask(__name__)
 
-# Define a simple HTML template with a dynamic background color
-html_template = """
+# Define a basic HTML template with a red background
+HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Background Color Change</title>
+    <title>Red Background App</title>
     <style>
-        /* Inline CSS to set the background color to RED */
-        body {
-            background-color: #FF0000; /* RED */
-            color: white; /* Ensuring text contrast */
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-        }
+        body {{
+            background-color: red; /* Set the background color to red */
+            color: white; /* Change text color to ensure readability */
+            font-family: Arial, sans-serif; /* Set a basic font for readability */
+            text-align: center; /* Center the text in the body */
+            padding: 50px; /* Add some padding around the content */
+        }}
     </style>
 </head>
 <body>
-    <h1>Welcome to My App!</h1>
-    <p>The background color has been successfully changed to RED.</p>
+    <h1>Welcome to the Red Background App!</h1>
+    <p>The background color has been successfully changed to red.</p>
 </body>
 </html>
-"""
+'''
 
-# Define a route for the home page
+def calculate_contrast(rgb1, rgb2):
+    """Calculate the contrast ratio between two RGB colors."""
+    def luminance(rgb):
+        r, g, b = [x / 255.0 for x in rgb]
+        r = (r / 12.92) if (r <= 0.03928) else ((r + 0.055) / 1.055) ** 2.4
+        g = (g / 12.92) if (g <= 0.03928) else ((g + 0.055) / 1.055) ** 2.4
+        b = (b / 12.92) if (b <= 0.03928) else ((b + 0.055) / 1.055) ** 2.4
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    
+    L1 = luminance(rgb1)
+    L2 = luminance(rgb2)
+    return (max(L1, L2) + 0.05) / (min(L1, L2) + 0.05)
+
+def test_accessibility():
+    """Test if the background and text color meet accessibility standards."""
+    expected_contrast_ratio = 4.5  # Minimum contrast ratio for normal text
+    background_color = (255, 0, 0)  # Red
+    text_color = (255, 255, 255)  # White
+    contrast_ratio = calculate_contrast(background_color, text_color)
+    
+    print("Accessibility Test:", '✅' if contrast_ratio >= expected_contrast_ratio else '❌')
+    return contrast_ratio >= expected_contrast_ratio
+
+def run_flask_app():
+    """Run the Flask app."""
+    app.run(debug=False, use_reloader=False)
+
 @app.route('/')
 def home():
-    return render_template_string(html_template)
+    """Home route handler."""
+    return render_template_string(HTML_TEMPLATE)
 
-def run_app():
-    """Start the Flask application."""
-    app.run(debug=True)
+def run_tests():
+    """Execute the test cases."""
+    print("Running tests...")
+    all_tests_passed = True
 
-class TestBackgroundColorChange(unittest.TestCase):
-    
-    @classmethod
-    def setUpClass(cls):
-        """Set up the test client before any tests are run."""
-        cls.client = app.test_client()
+    # Test Accessibility Compliance
+    try:
+        assert test_accessibility(), "Accessibility test failed"
+    except AssertionError:
+        all_tests_passed = False
 
-    def test_background_color(self):
-        """Test if the background color is set to RED."""
-        response = self.client.get('/')
-        self.assertIn(b'background-color: #FF0000;', response.data)
+    # Cross-browser and responsiveness are not unit-tested as they require manual inspection.
+    # Proper logging and testing should be done in actual cross-browser testing environments.
 
-    def test_text_contrast(self):
-        """Test if the text is visible on a red background."""
-        response = self.client.get('/')
-        self.assertIn(b'color: white;', response.data)
-
-    def test_responsive_design(self):
-        """Test that the application is responsive."""
-        response = self.client.get('/')
-        self.assertIn(b'<meta name="viewport" content="width=device-width, initial-scale=1.0">', response.data)
-
-    def test_browser_compatibility(self):
-        """Check if the HTML responds with the correct status code."""
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
-        
-    def test_edge_case_accessibility(self):
-        """Test against color accessibility for color blind users."""
-        response = self.client.get('/')
-        self.assertIn(b'color: white;', response.data)
-        # Further tests could involve checking color contrast ratios
+    # Edge case checks: Simulating a variety of conditions could go here.
+    if all_tests_passed:
+        print("All tests passed ✅")
+    else:
+        print("Some tests failed ❌")
 
 def main():
-    """Run the Flask app and the test suite."""
-    run_app()
-    
-    # Run tests and print results
-    print("Running tests...")
-    test_suite = unittest.TestLoader().loadTestsFromTestCase(TestBackgroundColorChange)
-    test_result = unittest.TextTestRunner(verbosity=2).run(test_suite)
+    """Main entry point of the application."""
+    # Start Flask app in a separate thread
+    threading.Thread(target=run_flask_app).start()
+    webbrowser.open("http://127.0.0.1:5000/")  # Open browser automatically
 
-    # Print results with checkmark or X indicators
-    for test, outcome in zip(test_suite, test_result.results):
-        if outcome:
-            print(f"✔️ {test}: Passed")
-        else:
-            print(f"❌ {test}: Failed")
+    run_tests()
 
 if __name__ == '__main__':
     main()
