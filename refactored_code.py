@@ -1,48 +1,80 @@
-class TitleModifier:
-    def __init__(self, base_title: str):
-        """
-        Initializes the TitleModifier with a base title.
-        
-        :param base_title: The original title of the application.
-        """
-        self.base_title = base_title
+import tkinter as tk
+from tkinter import messagebox
 
-    def add_money_saver(self) -> str:
-        """
-        Modifies the base title to include 'Money Saver'
-        
-        :return: The updated title with 'Money Saver' included.
-        """
-        return f"{self.base_title} - Money Saver"
+class SmartToDoTrackerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Smart ToDoTracker")
 
+        # Create user interface components
+        self.label = tk.Label(root, text="Smart ToDoTracker", font=("Helvetica", 16))
+        self.label.pack(pady=10)
 
-def test_title_modifier():
-    # Test case 1: Standard title modification
-    original_title = "Best Savings Tips"
-    title_modifier = TitleModifier(original_title)
-    updated_title = title_modifier.add_money_saver()
-    assert updated_title == "Best Savings Tips - Money Saver", "Test Case 1 Failed"
+        self.add_item_label = tk.Label(root, text="Add Item:")
+        self.add_item_label.pack(pady=5)
 
-    # Test case 2: Edge case with an empty string
-    original_title_empty = ""
-    title_modifier_empty = TitleModifier(original_title_empty)
-    updated_title_empty = title_modifier_empty.add_money_saver()
-    assert updated_title_empty == " - Money Saver", "Test Case 2 Failed"
+        self.entry = tk.Entry(root)
+        self.entry.pack(pady=5)
 
-    # Test case 3: Title with special characters
-    original_title_special = "Savings $$$$"
-    title_modifier_special = TitleModifier(original_title_special)
-    updated_title_special = title_modifier_special.add_money_saver()
-    assert updated_title_special == "Savings $$$$ - Money Saver", "Test Case 3 Failed"
+        self.add_button = tk.Button(root, text="Add", command=self.add_item)
+        self.add_button.pack(pady=5)
 
-    # Test case 4: Long title
-    original_title_long = "This is a very long title meant to test the handling of title strings"
-    title_modifier_long = TitleModifier(original_title_long)
-    updated_title_long = title_modifier_long.add_money_saver()
-    assert updated_title_long == "This is a very long title meant to test the handling of title strings - Money Saver", "Test Case 4 Failed"
+        self.listbox = tk.Listbox(root)
+        self.listbox.pack(pady=10)
 
-    print("All test cases passed!")
+        self.remove_button = tk.Button(root, text="Remove Selected", command=self.remove_item)
+        self.remove_button.pack(pady=5)
 
+    def add_item(self):
+        """Add an item to the listbox from the entry field."""
+        item = self.entry.get().strip()  # Stripping whitespace
+        if item:  # Ensures that the item is not just spaces
+            self.listbox.insert(tk.END, item)
+            self.entry.delete(0, tk.END)  # Clear the entry field after adding
+        else:
+            messagebox.showwarning("Warning", "Please enter an item to add.")
+
+    def remove_item(self):
+        """Remove selected item from the listbox."""
+        try:
+            selected_index = self.listbox.curselection()[0]
+            self.listbox.delete(selected_index)
+        except IndexError:
+            messagebox.showwarning("Warning", "Please select an item to remove.")
+
+def main():
+    root = tk.Tk()
+    app = SmartToDoTrackerApp(root)
+    root.geometry("300x400")  # Set the size of the application window
+    root.mainloop()
+
+# Test cases based on router recommendations
+def test_smart_todo_tracker_app():
+    """Test cases to verify application functionality."""
+    # Test setup
+    root = tk.Tk()
+    app = SmartToDoTrackerApp(root)
+
+    # Test adding an item
+    app.entry.insert(0, "Test Item")
+    app.add_item()
+    assert app.listbox.get(0) == "Test Item", "Failed: Item was not added correctly."
+
+    # Test removing an item
+    app.listbox.select_set(0)  # Select the first item
+    app.remove_item()
+    assert app.listbox.size() == 0, "Failed: Item was not removed correctly."
+
+    # Test empty input handle
+    app.entry.insert(0, "")
+    app.add_item()  # Should show warning
+    # This cannot be asserted since it would require GUI observation, but we can ensure no exception is raised.
+
+    # Edge case: Attempt to remove from empty list
+    app.remove_item()  # Should show warning
+
+    print("All test cases passed successfully!")
 
 if __name__ == "__main__":
-    test_title_modifier()
+    main()
+    test_smart_todo_tracker_app()
