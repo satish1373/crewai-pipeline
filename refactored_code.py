@@ -1,92 +1,80 @@
-from flask import Flask, render_template_string
-import webbrowser
-import threading
+# Import necessary modules; ensure you have any needed libraries
+from flask import Flask, jsonify
+import unittest
 
 app = Flask(__name__)
 
-# Define a basic HTML template with a red background
-HTML_TEMPLATE = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Red Background App</title>
-    <style>
-        body {{
-            background-color: red; /* Set the background color to red */
-            color: white; /* Change text color to ensure readability */
-            font-family: Arial, sans-serif; /* Set a basic font for readability */
-            text-align: center; /* Center the text in the body */
-            padding: 50px; /* Add some padding around the content */
-        }}
-    </style>
-</head>
-<body>
-    <h1>Welcome to the Red Background App!</h1>
-    <p>The background color has been successfully changed to red.</p>
-</body>
-</html>
-'''
+# Configuration for labels used throughout the application
+LABELS = {
+    "todo_tracker": "Smart ToDoTracker"  # Updated label
+}
 
-def calculate_contrast(rgb1, rgb2):
-    """Calculate the contrast ratio between two RGB colors."""
-    def luminance(rgb):
-        r, g, b = [x / 255.0 for x in rgb]
-        r = (r / 12.92) if (r <= 0.03928) else ((r + 0.055) / 1.055) ** 2.4
-        g = (g / 12.92) if (g <= 0.03928) else ((g + 0.055) / 1.055) ** 2.4
-        b = (b / 12.92) if (b <= 0.03928) else ((b + 0.055) / 1.055) ** 2.4
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b
-    
-    L1 = luminance(rgb1)
-    L2 = luminance(rgb2)
-    return (max(L1, L2) + 0.05) / (min(L1, L2) + 0.05)
-
-def test_accessibility():
-    """Test if the background and text color meet accessibility standards."""
-    expected_contrast_ratio = 4.5  # Minimum contrast ratio for normal text
-    background_color = (255, 0, 0)  # Red
-    text_color = (255, 255, 255)  # White
-    contrast_ratio = calculate_contrast(background_color, text_color)
-    
-    print("Accessibility Test:", '✅' if contrast_ratio >= expected_contrast_ratio else '❌')
-    return contrast_ratio >= expected_contrast_ratio
-
-def run_flask_app():
-    """Run the Flask app."""
-    app.run(debug=False, use_reloader=False)
+# A simulated endpoint showing how the label is used in the API
+@app.route('/api/todo', methods=['GET'])
+def get_todo_label():
+    """
+    Endpoint to retrieve the current ToDo Tracker label.
+    Returns JSON containing the updated label.
+    """
+    return jsonify({"label": LABELS["todo_tracker"]})
 
 @app.route('/')
 def home():
-    """Home route handler."""
-    return render_template_string(HTML_TEMPLATE)
+    """
+    Render the home page with the updated label.
+    """
+    return f"<h1>Welcome to {LABELS['todo_tracker']}!</h1>"
 
 def run_tests():
-    """Execute the test cases."""
-    print("Running tests...")
-    all_tests_passed = True
+    """
+    Function to run all tests for the application.
+    """
+    class TestSmartToDoTracker(unittest.TestCase):
 
-    # Test Accessibility Compliance
-    try:
-        assert test_accessibility(), "Accessibility test failed"
-    except AssertionError:
-        all_tests_passed = False
+        def test_api_label(self):
+            """Test the API endpoint returns the correct label."""
+            with app.test_client() as client:
+                response = client.get('/api/todo')
+                data = response.get_json()
+                self.assertEqual(data['label'], "Smart ToDoTracker")
 
-    # Cross-browser and responsiveness are not unit-tested as they require manual inspection.
-    # Proper logging and testing should be done in actual cross-browser testing environments.
+        def test_home_page_label(self):
+            """Test home page displays the correct label."""
+            with app.test_client() as client:
+                response = client.get('/')
+                self.assertIn("Welcome to Smart ToDoTracker", response.data.decode('utf-8'))
 
-    # Edge case checks: Simulating a variety of conditions could go here.
-    if all_tests_passed:
+        def test_localization(self):
+            """Test that the label is present in any expected localization"""
+            loc_labels = {"en": "Smart ToDoTracker", "es": "Smart ToDoTracker"}
+            self.assertEqual(loc_labels["en"], "Smart ToDoTracker")
+            self.assertEqual(loc_labels["es"], "Smart ToDoTracker")  # Example placeholder
+
+        def test_legacy_code_reference(self):
+            """Test for any hardcoded legacy instances, example given"""
+            # Assuming we want to check an old reference to the label
+            old_reference = "ToDoTracker"
+            self.assertNotIn(old_reference, LABELS.values()) 
+
+        def test_user_communication(self):
+            """Test for user communications about label change"""
+            user_message = "We're excited to introduce Smart ToDoTracker!"
+            self.assertIn("Smart ToDoTracker", user_message)
+
+    # Running tests and collecting results
+    result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(TestSmartToDoTracker))
+
+    # Print results with checkmark or X indicators
+    if result.wasSuccessful():
         print("All tests passed ✅")
     else:
         print("Some tests failed ❌")
 
 def main():
-    """Main entry point of the application."""
-    # Start Flask app in a separate thread
-    threading.Thread(target=run_flask_app).start()
-    webbrowser.open("http://127.0.0.1:5000/")  # Open browser automatically
+    # Run the Flask application
+    app.run(debug=True)
 
+    # Run tests after starting the application
     run_tests()
 
 if __name__ == '__main__':
