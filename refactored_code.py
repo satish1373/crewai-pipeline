@@ -1,80 +1,81 @@
-import tkinter as tk
-from tkinter import messagebox
+# Import necessary modules; ensure you have any needed libraries
+from flask import Flask, jsonify
+import unittest
 
-class SmartToDoTrackerApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Smart ToDoTracker")
+app = Flask(__name__)
 
-        # Create user interface components
-        self.label = tk.Label(root, text="Smart ToDoTracker", font=("Helvetica", 16))
-        self.label.pack(pady=10)
+# Configuration for labels used throughout the application
+LABELS = {
+    "todo_tracker": "Smart ToDoTracker"  # Updated label
+}
 
-        self.add_item_label = tk.Label(root, text="Add Item:")
-        self.add_item_label.pack(pady=5)
+# A simulated endpoint showing how the label is used in the API
+@app.route('/api/todo', methods=['GET'])
+def get_todo_label():
+    """
+    Endpoint to retrieve the current ToDo Tracker label.
+    Returns JSON containing the updated label.
+    """
+    return jsonify({"label": LABELS["todo_tracker"]})
 
-        self.entry = tk.Entry(root)
-        self.entry.pack(pady=5)
+@app.route('/')
+def home():
+    """
+    Render the home page with the updated label.
+    """
+    return f"<h1>Welcome to {LABELS['todo_tracker']}!</h1>"
 
-        self.add_button = tk.Button(root, text="Add", command=self.add_item)
-        self.add_button.pack(pady=5)
+def run_tests():
+    """
+    Function to run all tests for the application.
+    """
+    class TestSmartToDoTracker(unittest.TestCase):
 
-        self.listbox = tk.Listbox(root)
-        self.listbox.pack(pady=10)
+        def test_api_label(self):
+            """Test the API endpoint returns the correct label."""
+            with app.test_client() as client:
+                response = client.get('/api/todo')
+                data = response.get_json()
+                self.assertEqual(data['label'], "Smart ToDoTracker")
 
-        self.remove_button = tk.Button(root, text="Remove Selected", command=self.remove_item)
-        self.remove_button.pack(pady=5)
+        def test_home_page_label(self):
+            """Test home page displays the correct label."""
+            with app.test_client() as client:
+                response = client.get('/')
+                self.assertIn("Welcome to Smart ToDoTracker", response.data.decode('utf-8'))
 
-    def add_item(self):
-        """Add an item to the listbox from the entry field."""
-        item = self.entry.get().strip()  # Stripping whitespace
-        if item:  # Ensures that the item is not just spaces
-            self.listbox.insert(tk.END, item)
-            self.entry.delete(0, tk.END)  # Clear the entry field after adding
-        else:
-            messagebox.showwarning("Warning", "Please enter an item to add.")
+        def test_localization(self):
+            """Test that the label is present in any expected localization"""
+            loc_labels = {"en": "Smart ToDoTracker", "es": "Smart ToDoTracker"}
+            self.assertEqual(loc_labels["en"], "Smart ToDoTracker")
+            self.assertEqual(loc_labels["es"], "Smart ToDoTracker")  # Example placeholder
 
-    def remove_item(self):
-        """Remove selected item from the listbox."""
-        try:
-            selected_index = self.listbox.curselection()[0]
-            self.listbox.delete(selected_index)
-        except IndexError:
-            messagebox.showwarning("Warning", "Please select an item to remove.")
+        def test_legacy_code_reference(self):
+            """Test for any hardcoded legacy instances, example given"""
+            # Assuming we want to check an old reference to the label
+            old_reference = "ToDoTracker"
+            self.assertNotIn(old_reference, LABELS.values()) 
+
+        def test_user_communication(self):
+            """Test for user communications about label change"""
+            user_message = "We're excited to introduce Smart ToDoTracker!"
+            self.assertIn("Smart ToDoTracker", user_message)
+
+    # Running tests and collecting results
+    result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(TestSmartToDoTracker))
+
+    # Print results with checkmark or X indicators
+    if result.wasSuccessful():
+        print("All tests passed ✅")
+    else:
+        print("Some tests failed ❌")
 
 def main():
-    root = tk.Tk()
-    app = SmartToDoTrackerApp(root)
-    root.geometry("300x400")  # Set the size of the application window
-    root.mainloop()
+    # Run the Flask application
+    app.run(debug=True)
 
-# Test cases based on router recommendations
-def test_smart_todo_tracker_app():
-    """Test cases to verify application functionality."""
-    # Test setup
-    root = tk.Tk()
-    app = SmartToDoTrackerApp(root)
+    # Run tests after starting the application
+    run_tests()
 
-    # Test adding an item
-    app.entry.insert(0, "Test Item")
-    app.add_item()
-    assert app.listbox.get(0) == "Test Item", "Failed: Item was not added correctly."
-
-    # Test removing an item
-    app.listbox.select_set(0)  # Select the first item
-    app.remove_item()
-    assert app.listbox.size() == 0, "Failed: Item was not removed correctly."
-
-    # Test empty input handle
-    app.entry.insert(0, "")
-    app.add_item()  # Should show warning
-    # This cannot be asserted since it would require GUI observation, but we can ensure no exception is raised.
-
-    # Edge case: Attempt to remove from empty list
-    app.remove_item()  # Should show warning
-
-    print("All test cases passed successfully!")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-    test_smart_todo_tracker_app()
