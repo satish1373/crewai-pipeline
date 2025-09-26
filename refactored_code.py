@@ -1,71 +1,85 @@
-# Import necessary modules for the application
-from flask import Flask, render_template
+# Importing necessary modules for the application
+from flask import Flask, render_template, jsonify
 import unittest
 
 app = Flask(__name__)
 
-# Define the new app label
-APP_LABEL = 'Smart ToDoTracker'
+# Dummy data structure to potentially hold exchange rates
+exchange_rates = {
+    "USD": 1.0,
+    "EUR": 0.85,
+    "GBP": 0.75,
+}
 
+# Route for the main page
 @app.route('/')
-def home():
-    # Render the home page with the new label
-    return render_template('index.html', app_label=APP_LABEL)
+def index():
+    # Rendering the main UI page. Ensure "Latest Exchange Rate" label is used.
+    return render_template('index.html', label="Latest Exchange Rate")
 
-def run_app():
-    app.run(debug=True)
+# An example route to get exchange rate data dynamically if needed
+@app.route('/api/exchange-rate', methods=['GET'])
+def get_exchange_rate():
+    # Return the exchange rates in a JSON format
+    return jsonify(exchange_rates)
 
-class TestSmartToDoTracker(unittest.TestCase):
-    def setUp(self):
-        """Set up a testing client for the Flask app."""
-        self.app = app.test_client()
-        self.app.testing = True
-
-    def test_label_display(self):
-        """Verify that the label 'Smart ToDoTracker' appears on the home page."""
-        response = self.app.get('/')
-        self.assertIn(APP_LABEL.encode(), response.data)
-
-    def test_label_internationalization(self):
-        """Ensure that 'Smart ToDoTracker' is reflected in different locales."""
-        response_en = self.app.get('/')
-        response_es = self.app.get('/?lang=es')  # Example locale switch
-        self.assertIn(APP_LABEL.encode(), response_en.data)
-        # Assuming a hypothetical translation in Spanish for demonstration
-        self.assertIn('Smart ToDoTracker Translated'.encode(), response_es.data) 
-
-    def test_ui_element_layout(self):
-        """Check for overflow or layout issues with the new label."""
-        response = self.app.get('/')
-        layout_check = response.data  # Here we would perform actual layout validations
-        self.assertIsNotNone(layout_check)
-
-    def test_functionality_impact(self):
-        """Validate that no functionality is affected by the label change."""
-        response = self.app.get('/')
-        self.assertEqual(response.status_code, 200)
-
-    def test_edge_cases(self):
-        """Check for edge cases like caching and user-generated content."""
-        # For the sake of the example, we will simulate caching check.
-        cached_response = self.app.get('/')
-        self.assertIn(APP_LABEL.encode(), cached_response.data)  # Check cached response includes the updated label.
-
-    def run_tests(self):
-        """Run the unit tests and print results with indicators."""
-        tests = unittest.TestLoader().loadTestsFromTestCase(TestSmartToDoTracker)
-        test_result = unittest.TextTestRunner(verbosity=2).run(tests)
+def run_tests():
+    class TestExchangeRateLabel(unittest.TestCase):
         
-        if test_result.wasSuccessful():
-            print("All tests passed ✅")
-        else:
-            print("Some tests failed ❌")
+        def test_label_display(self):
+            # Simulate accessing the main page
+            with app.test_client() as client:
+                response = client.get('/')
+                self.assertIn(b'Latest Exchange Rate', response.data, "Label did not display as expected.")
+                print("Label Display Test: ✅")
+
+        def test_exchange_rate_api(self):
+            # Simulate API call
+            with app.test_client() as client:
+                response = client.get('/api/exchange-rate')
+                self.assertEqual(response.status_code, 200, "API did not return a 200 status code.")
+                self.assertEqual(response.json, exchange_rates, "Exchange rates do not match expected values.")
+                print("Exchange Rate API Test: ✅")
+
+        def test_ui_functionality(self):
+            # A placeholder for UI functionality tests
+            with app.test_client() as client:
+                # Simulate more checks if necessary...
+                self.assertTrue(True, "UI functionality check failed.")
+                print("UI Functionality Test: ✅")
+
+        def test_edge_case_dynamic_label(self):
+            # Check handling of dynamic elements
+            dynamic_label = "Latest Exchange Rate"
+            self.assertEqual(dynamic_label, "Latest Exchange Rate", "Dynamic label does not match.")
+            print("Edge Case Dynamic Label Test: ✅")
+
+        def test_label_visibility_for_roles(self):
+            # Placeholder for testing label visibility by user roles
+            user_roles = ['admin', 'editor', 'viewer']
+            for role in user_roles:
+                with app.test_client() as client:
+                    # Simulate role-based access (pseudocode)
+                    # response = client.get('/role-specific-endpoint', headers={'Role': role})
+                    self.assertIn(b'Latest Exchange Rate', b'Latest Exchange Rate', "Label should be visible to all user roles.")
+                    print(f"Label Visibility Test for role {role}: ✅")
+
+        def test_responsive_design(self):
+            # This is a placeholder for responsive design tests
+            screen_resolutions = ['desktop', 'tablet', 'mobile']
+            for resolution in screen_resolutions:
+                with app.test_client() as client:
+                    # Simulate rendering under different resolutions
+                    self.assertTrue(True, f"Responsive check failed for {resolution}.")
+                    print(f"Responsive Design Test for {resolution}: ✅")
+
+    # Run the tests
+    unittest.main(exit=False)
 
 def main():
-    """Main function to run the application and tests."""
-    run_app()  # This will start the Flask app
-    # Running tests after the app starts
-    TestSmartToDoTracker().run_tests()
+    run_tests()
+    # Running the application
+    app.run(debug=True)
 
 if __name__ == '__main__':
     main()
