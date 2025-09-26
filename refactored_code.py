@@ -1,48 +1,169 @@
-class TitleModifier:
-    def __init__(self, base_title: str):
-        """
-        Initializes the TitleModifier with a base title.
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+from sqlalchemy.exc import IntegrityError
+from flask_migrate import Migrate
+import unittest
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///calendar.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# Model for the Calendar Event
+class CalendarEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)  # Assuming user authentication implemented
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'start_time': self.start_time.isoformat(),
+            'end_time': self.end_time.isoformat(),
+            'user_id': self.user_id
+        }
+
+# API to create a calendar event
+@app.route('/api/events', methods=['POST'])
+def create_event():
+    data = request.json
+    if not all(k in data for k in ("title", "start_time", "end_time", "user_id")):
+        return jsonify({"error": "Missing data"}), 400
+
+    # Validate datetime format
+    try:
+        start_time = datetime.fromisoformat(data['start_time'])
+        end_time = datetime.fromisoformat(data['end_time'])
+    except ValueError:
+        return jsonify({"error": "Invalid datetime format"}), 400
+
+    new_event = CalendarEvent(
+        title=data['title'],
+        start_time=start_time,
+        end_time=end_time,
+        user_id=data['user_id']
+    )
+
+    try:
+        db.session.add(new_event)
+        db.session.commit()
+        return jsonify(new_event.to_dict()), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "Event overlaps with another event"}), 409
+
+# API to get all events for a user
+@app.route('/api/events/<int:user_id>', methods=['GET'])
+def get_events(user_id):
+    events = CalendarEvent.query.filter_by(user_id=user_id).all()
+    return jsonify([event.to_dict() for event in events]), 200
+
+# API to update an existing event
+@app.route('/api/events/<int:event_id>', methods=['PUT'])
+def update_event(event_id):
+    event = CalendarEvent.query.get_or_404(event_id)
+    data = request.json
+    
+    # Validate datetime format
+    try:
+        if 'start_time' in data:
+            event.start_time = datetime.fromisoformat(data['start_time'])
+        if 'end_time' in data:
+            event.end_time = datetime.fromisoformat(data['end_time'])
+        event.title = data.get('title', event.title)
         
-        :param base_title: The original title of the application.
-        """
-        self.base_title = base_title
+        db.session.commit()
+        return jsonify(event.to_dict()), 200
+    except ValueError:
+        return jsonify({"error": "Invalid datetime format"}), 400
 
-    def add_money_saver(self) -> str:
-        """
-        Modifies the base title to include 'Money Saver'
+# API to delete a calendar event
+@app.route('/api/events/<int:event_id>', methods=['DELETE'])
+def delete_event(event_id):
+    event = CalendarEvent.query.get_or_404(event_id)
+    db.session.delete(event)
+    db.session.commit()
+    return jsonify({"message": "Event deleted successfully."}), 204
+
+# Error handling for invalid datetime formats
+@app.errorhandler(ValueError)
+def handle_value_error(error):
+    return jsonify({"error": "Invalid datetime format"}), 400
+
+# Test cases
+class CalendarEventTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+        with app.app_context():
+            db.create_all()
         
-        :return: The updated title with 'Money Saver' included.
-        """
-        return f"{self.base_title} - Money Saver"
+    def tearDown(self):
+        with app.app_context():
+            db.drop_all()
 
+    def test_create_event(self):
+        response = self.app.post('/api/events', json={
+            "title": "Meeting",
+            "start_time": "2023-10-01T10:00:00",
+            "end_time": "2023-10-01T11:00:00",
+            "user_id": 1
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("Meeting", str(response.data))
 
-def test_title_modifier():
-    # Test case 1: Standard title modification
-    original_title = "Best Savings Tips"
-    title_modifier = TitleModifier(original_title)
-    updated_title = title_modifier.add_money_saver()
-    assert updated_title == "Best Savings Tips - Money Saver", "Test Case 1 Failed"
+    def test_update_event(self):
+        self.app.post('/api/events', json={
+            "title": "Meeting",
+            "start_time": "2023-10-01T10:00:00",
+            "end_time": "2023-10-01T11:00:00",
+            "user_id": 1
+        })
+        
+        response = self.app.put('/api/events/1', json={
+            "title": "Updated Meeting",
+            "start_time": "2023-10-01T11:00:00",
+            "end_time": "2023-10-01T12:00:00"
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Updated Meeting", str(response.data))
 
-    # Test case 2: Edge case with an empty string
-    original_title_empty = ""
-    title_modifier_empty = TitleModifier(original_title_empty)
-    updated_title_empty = title_modifier_empty.add_money_saver()
-    assert updated_title_empty == " - Money Saver", "Test Case 2 Failed"
+    def test_delete_event(self):
+        self.app.post('/api/events', json={
+            "title": "Meeting",
+            "start_time": "2023-10-01T10:00:00",
+            "end_time": "2023-10-01T11:00:00",
+            "user_id": 1
+        })
+        
+        response = self.app.delete('/api/events/1')
+        self.assertEqual(response.status_code, 204)
 
-    # Test case 3: Title with special characters
-    original_title_special = "Savings $$$$"
-    title_modifier_special = TitleModifier(original_title_special)
-    updated_title_special = title_modifier_special.add_money_saver()
-    assert updated_title_special == "Savings $$$$ - Money Saver", "Test Case 3 Failed"
+    def test_invalid_datetime(self):
+        response = self.app.post('/api/events', json={
+            "title": "Invalid Meeting",
+            "start_time": "invalid-date",
+            "end_time": "invalid-date",
+            "user_id": 1
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid datetime format", str(response.data))
 
-    # Test case 4: Long title
-    original_title_long = "This is a very long title meant to test the handling of title strings"
-    title_modifier_long = TitleModifier(original_title_long)
-    updated_title_long = title_modifier_long.add_money_saver()
-    assert updated_title_long == "This is a very long title meant to test the handling of title strings - Money Saver", "Test Case 4 Failed"
-
-    print("All test cases passed!")
-
-
-if __name__ == "__main__":
-    test_title_modifier()
+# Main entry point
+if __name__ == '__main__':
+    db.create_all()  # Create tables
+    app.run(debug=True)
+    
+    # Run the tests
+    runner = unittest.TextTestRunner()
+    result = runner.run(unittest.TestLoader().loadTestsFromTestCase(CalendarEventTestCase))
+    
+    # Check results
+    if result.wasSuccessful():
+        print("All tests passed! ✅")
+    else:
+        print("Some tests failed! ❌")
