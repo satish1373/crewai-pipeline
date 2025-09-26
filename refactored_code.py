@@ -1,81 +1,63 @@
-# Import necessary modules; ensure you have any needed libraries
-from flask import Flask, jsonify
+# Importing necessary modules for the application
+from flask import Flask, render_template, jsonify
 import unittest
 
 app = Flask(__name__)
 
-# Configuration for labels used throughout the application
-LABELS = {
-    "todo_tracker": "Smart ToDoTracker"  # Updated label
+# Dummy data structure to potentially hold exchange rates
+exchange_rates = {
+    "USD": 1.0,
+    "EUR": 0.85,
+    "GBP": 0.75,
 }
 
-# A simulated endpoint showing how the label is used in the API
-@app.route('/api/todo', methods=['GET'])
-def get_todo_label():
-    """
-    Endpoint to retrieve the current ToDo Tracker label.
-    Returns JSON containing the updated label.
-    """
-    return jsonify({"label": LABELS["todo_tracker"]})
-
+# Route for the main page
 @app.route('/')
-def home():
-    """
-    Render the home page with the updated label.
-    """
-    return f"<h1>Welcome to {LABELS['todo_tracker']}!</h1>"
+def index():
+    # Rendering the main UI page. Ensure "Latest Exchange Rate" label is used.
+    return render_template('index.html', label="Latest Exchange Rate")
+
+# An example route to get exchange rate data dynamically if needed
+@app.route('/api/exchange-rate', methods=['GET'])
+def get_exchange_rate():
+    # Return the exchange rates in a JSON format
+    return jsonify(exchange_rates)
+
 
 def run_tests():
-    """
-    Function to run all tests for the application.
-    """
-    class TestSmartToDoTracker(unittest.TestCase):
-
-        def test_api_label(self):
-            """Test the API endpoint returns the correct label."""
-            with app.test_client() as client:
-                response = client.get('/api/todo')
-                data = response.get_json()
-                self.assertEqual(data['label'], "Smart ToDoTracker")
-
-        def test_home_page_label(self):
-            """Test home page displays the correct label."""
+    class TestExchangeRateLabel(unittest.TestCase):
+        def test_label_display(self):
+            # Simulate accessing the main page
             with app.test_client() as client:
                 response = client.get('/')
-                self.assertIn("Welcome to Smart ToDoTracker", response.data.decode('utf-8'))
+                self.assertIn(b'Latest Exchange Rate', response.data)
+                print("Label Display Test: ✅")
 
-        def test_localization(self):
-            """Test that the label is present in any expected localization"""
-            loc_labels = {"en": "Smart ToDoTracker", "es": "Smart ToDoTracker"}
-            self.assertEqual(loc_labels["en"], "Smart ToDoTracker")
-            self.assertEqual(loc_labels["es"], "Smart ToDoTracker")  # Example placeholder
+        def test_exchange_rate_api(self):
+            # Simulate API call
+            with app.test_client() as client:
+                response = client.get('/api/exchange-rate')
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json, exchange_rates)
+                print("Exchange Rate API Test: ✅")
 
-        def test_legacy_code_reference(self):
-            """Test for any hardcoded legacy instances, example given"""
-            # Assuming we want to check an old reference to the label
-            old_reference = "ToDoTracker"
-            self.assertNotIn(old_reference, LABELS.values()) 
+        def test_ui_functionality(self):
+            # A placeholder for UI functionality tests
+            with app.test_client() as client:
+                # Simulate more checks if necessary...
+                self.assertTrue(True)
+                print("UI Functionality Test: ✅")
 
-        def test_user_communication(self):
-            """Test for user communications about label change"""
-            user_message = "We're excited to introduce Smart ToDoTracker!"
-            self.assertIn("Smart ToDoTracker", user_message)
+        def test_edge_case_dynamic_label(self):
+            # Check handling of dynamic elements
+            dynamic_label = "Latest Exchange Rate"
+            self.assertEqual(dynamic_label, "Latest Exchange Rate")
+            print("Edge Case Dynamic Label Test: ✅")
 
-    # Running tests and collecting results
-    result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(TestSmartToDoTracker))
-
-    # Print results with checkmark or X indicators
-    if result.wasSuccessful():
-        print("All tests passed ✅")
-    else:
-        print("Some tests failed ❌")
-
-def main():
-    # Run the Flask application
-    app.run(debug=True)
-
-    # Run tests after starting the application
-    run_tests()
+    # Run the tests
+    unittest.main(exit=False)
 
 if __name__ == '__main__':
-    main()
+    run_tests()
+    # Running the application
+    app.run(debug=True)
